@@ -905,8 +905,8 @@ class Escpos(object):
         :raises ValueError: if not 0 <= n <= 255
         """
         if 0 <= n <= 255:
-            # ESC d n
-            self._raw(ESC + b"d" + six.int2byte(n))
+            # ESC d n (ESC a for StarPRNT)
+            self._raw(ESC + b"a" + six.int2byte(n))
         else:
             raise ValueError("n must be betwen 0 and 255")
 
@@ -1078,7 +1078,7 @@ class EscposIO(object):
         for line in lines:
             self.printer.set(**params)
             if isinstance(text, six.text_type):
-                self.printer.text(u"{0}\n".format(line))
+                self.printer.text("{0}\n".format(line))
             else:
                 self.printer.text("{0}\n".format(line))
 

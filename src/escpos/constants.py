@@ -56,7 +56,7 @@ CD_KICK_2 = _CASH_DRAWER(b"\x00", 50, 50)  # Sends a pulse to pin 2 []
 CD_KICK_5 = _CASH_DRAWER(b"\x01", 50, 50)  # Sends a pulse to pin 5 []
 
 # Paper Cutter
-_CUT_PAPER = lambda m: GS + b"V" + m
+_CUT_PAPER = lambda m: ESC + b"d" + m
 PAPER_FULL_CUT = _CUT_PAPER(b"\x00")  # Full cut paper
 PAPER_PART_CUT = _CUT_PAPER(b"\x01")  # Partial cut paper
 
@@ -171,7 +171,7 @@ LINESPACING_FUNCS = {
 
 # Prefix to change the codepage. You need to attach a byte to indicate
 # the codepage to use. We use escpos-printer-db as the data source.
-CODEPAGE_CHANGE = ESC + b"\x74"
+CODEPAGE_CHANGE = ESC + GS + b"\x74"
 
 # Barcode format
 _SET_BARCODE_TXT_POS = lambda n: GS + b"H" + n

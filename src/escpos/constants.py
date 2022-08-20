@@ -25,6 +25,7 @@ CAN = b"\x18"
 ESC = b"\x1b"
 FS = b"\x1c"
 GS = b"\x1d"
+RS = b"\x1e"
 
 # Feed control sequences
 CTL_LF = b"\n"  # Print and line feed
@@ -57,8 +58,8 @@ CD_KICK_5 = _CASH_DRAWER(b"\x01", 50, 50)  # Sends a pulse to pin 5 []
 
 # Paper Cutter
 _CUT_PAPER = lambda m: ESC + b"d" + m
-PAPER_FULL_CUT = _CUT_PAPER(b"\x00")  # Full cut paper
-PAPER_PART_CUT = _CUT_PAPER(b"\x01")  # Partial cut paper
+PAPER_FULL_CUT = _CUT_PAPER(b"\x02")  # Full cut paper (after move to cut position)
+PAPER_PART_CUT = _CUT_PAPER(b"\x03")  # Partial cut paper (after move to cut position)
 
 # Beep (please note that the actual beep sequence may differ between devices)
 BEEP = b"\x07"
@@ -80,59 +81,63 @@ SHEET_ROLL_MODE = ESC + b"\x63\x30\x01"  # paper roll
 # Text format
 # TODO: Acquire the "ESC/POS Application Programming Guide for Paper Roll
 #       Printers" and tidy up this stuff too.
-TXT_SIZE = GS + b"!"
+# TXT_SIZE =
+TXT_SIZE = b""  # GS + b"!"
 
-TXT_NORMAL = ESC + b"!\x00"  # Normal text
+TXT_NORMAL = b""  # ESC + b"!\x00"  # Normal text
 
 
 TXT_STYLE = {
     "bold": {
-        False: ESC + b"\x45\x00",  # Bold font OFF
-        True: ESC + b"\x45\x01",  # Bold font ON
+        False: ESC + b"F",  # Bold font OFF
+        True: ESC + b"E",  # Bold font ON
     },
     "underline": {
         0: ESC + b"\x2d\x00",  # Underline font OFF
         1: ESC + b"\x2d\x01",  # Underline font 1-dot ON
-        2: ESC + b"\x2d\x02",  # Underline font 2-dot ON
+        2: ESC + b"\x2d\x01",  # Underline font 2-dot ON
     },
     "size": {
-        "normal": TXT_NORMAL + ESC + b"!\x00",  # Normal text
-        "2h": TXT_NORMAL + ESC + b"!\x10",  # Double height text
-        "2w": TXT_NORMAL + ESC + b"!\x20",  # Double width text
-        "2x": TXT_NORMAL + ESC + b"!\x30",  # Quad area text
+        "normal": ESC + b"i\x00\x00",  # Normal text
+        "2h": ESC + b"i\x01\x00",  # Double height text
+        "2w": ESC + b"i\x00\x01",  # Double width text
+        "2x": ESC + b"i\x01\x01",  # Quad area text
     },
     "font": {
-        "a": ESC + b"\x4d\x00",  # Font type A
-        "b": ESC + b"\x4d\x00",  # Font type B
+        "a": ESC + RS + b"F\x00",  # Font type A
+        "b": ESC + RS + b"F\x01",  # Font type B
     },
     "align": {
-        "left": ESC + b"\x61\x00",  # Left justification
-        "center": ESC + b"\x61\x01",  # Centering
-        "right": ESC + b"\x61\x02",  # Right justification
+        "left": ESC + GS + b"a\x00",  # Left justification
+        "center": ESC + GS + b"a\x01",  # Centering
+        "right": ESC + b"a\x02",  # Right justification
     },
     "invert": {
-        True: GS + b"\x42\x01",  # Inverse Printing ON
-        False: GS + b"\x42\x00",  # Inverse Printing OFF
+        True: ESC + b"4",  # Inverse Printing ON
+        False: ESC + b"5",  # Inverse Printing OFF
     },
     "color": {
         "black": ESC + b"\x72\x00",  # Default Color
         "red": ESC + b"\x72\x01",  # Alternative Color, Usually Red
     },
-    "flip": {True: ESC + b"\x7b\x01", False: ESC + b"\x7b\x00"},  # Flip ON  # Flip OFF
+    "flip": {
+        True: b"",  # Flip ON
+        False: b"",  # Flip OFF
+    },
     "density": {
-        0: GS + b"\x7c\x00",  # Printing Density -50%
-        1: GS + b"\x7c\x01",  # Printing Density -37.5%
-        2: GS + b"\x7c\x02",  # Printing Density -25%
-        3: GS + b"\x7c\x03",  # Printing Density -12.5%
-        4: GS + b"\x7c\x04",  # Printing Density  0%
-        5: GS + b"\x7c\x08",  # Printing Density +50%
-        6: GS + b"\x7c\x07",  # Printing Density +37.5%
-        7: GS + b"\x7c\x06",  # Printing Density +25%
-        8: GS + b"\x7c\x05",  # Printing Density +12.5%
+        0: ESC + RS + b"d\x06",  # Printing Density -50%
+        1: ESC + RS + b"d\x05",  # Printing Density -37.5%
+        2: ESC + RS + b"d\x04",  # Printing Density -25%
+        3: ESC + RS + b"d\x03",  # Printing Density -12.5%
+        4: ESC + RS + b"d\x03",  # Printing Density  0%
+        5: ESC + RS + b"d\x03",  # Printing Density +50%
+        6: ESC + RS + b"d\x02",  # Printing Density +37.5%
+        7: ESC + RS + b"d\x01",  # Printing Density +25%
+        8: ESC + RS + b"d\x00",  # Printing Density +12.5%
     },
     "smooth": {
-        True: GS + b"\x62\x01",  # Smooth ON
-        False: GS + b"\x62\x00",  # Smooth OFF
+        True: b"",  # Smooth ON
+        False: b"",  # Smooth OFF
     },
     "height": {  # Custom text height
         1: 0x00,
@@ -157,7 +162,7 @@ TXT_STYLE = {
 }
 
 # Fonts
-SET_FONT = lambda n: ESC + b"\x4d" + n
+SET_FONT = lambda n: ESC + RS + b"\x46" + n
 TXT_FONT_A = SET_FONT(b"\x00")  # Font type A
 TXT_FONT_B = SET_FONT(b"\x01")  # Font type B
 

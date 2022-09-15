@@ -803,7 +803,7 @@ class Escpos(object):
         """
 
         if not feed:
-            self._raw(GS + b"V" + six.int2byte(66) + b"\x00")
+            self._raw(ESC + b"d" + six.int2byte(66) + b"\x00")
             return
 
         self.print_and_feed(6)

@@ -22,6 +22,11 @@ from barcode.writer import ImageWriter
 
 import os
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 from .constants import (
     ESC,
     GS,
@@ -98,6 +103,8 @@ class Escpos(object):
         :param profile: Printer profile"""
         self.profile = get_profile(profile)
         self.magic = MagicEncode(self, **(magic_encode_args or {}))
+        # star printers use a different command set
+        self.starCommands = self.profile.features.get('starCommands', False)
 
     def __del__(self):
         """call self.close upon deletion"""
@@ -128,6 +135,7 @@ class Escpos(object):
         impl="bitImageRaster",
         fragment_height=960,
         center=False,
+        media_width=None
     ):
         """Print an image
 
@@ -153,30 +161,37 @@ class Escpos(object):
         :param impl: choose image printing mode between `bitImageRaster`, `graphics` or `bitImageColumn`
         :param fragment_height: Images larger than this will be split into multiple fragments *default:* 960
         :param center: Center image horizontally *default:* False
+        :param media_width: Width of print media in pixels (take from profile if not given)
 
         """
         im = EscposImage(img_source)
 
         try:
-            if self.profile.profile_data["media"]["width"]["pixels"] == "Unknown":
-                print(
-                    "The media.width.pixel field of the printer profile is not set. "
-                    + "The center flag will have no effect."
-                )
-
-            max_width = int(self.profile.profile_data["media"]["width"]["pixels"])
-
-            if im.width > max_width:
-                raise ImageWidthError("{} > {}".format(im.width, max_width))
-
             if center:
-                im.center(max_width)
+                if not media_width:
+                    media_width = self.profile.profile_data["media"]["width"]["pixels"]
+                    if media_width == "Unknown":
+                        logger.warning("The media.width.pixel field of the printer profile is not set. "
+                                       + "The center flag will have no effect.")
+
+                    media_width = int(self.profile.profile_data["media"]["width"]["pixels"])
+
+                if im.width < media_width:
+                    im.center(media_width)
         except KeyError:
             # If the printer's pixel width is not known, print anyways...
             pass
         except ValueError:
             # If the max_width cannot be converted to an int, print anyways...
             pass
+
+        if self.starCommands:
+            header = ESC + GS + b'S' + b'\x01'
+            header += self._int_low_high(im.width_bytes, 2)
+            header += self._int_low_high(im.height, 2)
+            header += b'\x00'
+            self._raw(header + im.to_raster_format())
+            return
 
         if im.height > fragment_height:
             fragments = im.split(fragment_height)

@@ -39,42 +39,18 @@ from .constants import (
 from .constants import (
     QR_MODEL_1,
     QR_MODEL_2,
-    QR_MICRO,
-    BARCODE_TYPES,
-    BARCODE_HEIGHT,
-    BARCODE_WIDTH,
+    QR_MICRO
 )
-from .constants import BARCODE_FONT_A, BARCODE_FONT_B, BARCODE_FORMATS
-from .constants import (
-    BARCODE_TXT_OFF,
-    BARCODE_TXT_BTH,
-    BARCODE_TXT_ABV,
-    BARCODE_TXT_BLW,
-)
-from .constants import TXT_SIZE, TXT_NORMAL
-from .constants import SET_FONT
-from .constants import LINESPACING_FUNCS, LINESPACING_RESET
-from .constants import LINE_DISPLAY_OPEN, LINE_DISPLAY_CLEAR, LINE_DISPLAY_CLOSE
-from .constants import (
-    CD_KICK_DEC_SEQUENCE,
-    CD_KICK_5,
-    CD_KICK_2,
-    PAPER_FULL_CUT,
-    PAPER_PART_CUT,
-)
-from .constants import HW_RESET, HW_SELECT, HW_INIT
+from .constants import BARCODE_FORMATS
+
 from .constants import (
     CTL_VT,
     CTL_CR,
     CTL_FF,
     CTL_LF,
-    CTL_SET_HT,
-    PANEL_BUTTON_OFF,
-    PANEL_BUTTON_ON,
+    CTL_SET_HT
 )
-from .constants import TXT_STYLE
-from .constants import RT_STATUS_ONLINE, RT_MASK_ONLINE
-from .constants import RT_STATUS_PAPER, RT_MASK_PAPER, RT_MASK_LOWPAPER, RT_MASK_NOPAPER
+from .constants import PrinterCommands, StarCommands
 
 from .exceptions import BarcodeTypeError, BarcodeSizeError, TabPosError
 from .exceptions import CashDrawerError, SetVariableError, BarcodeCodeError
@@ -105,6 +81,7 @@ class Escpos(object):
         self.magic = MagicEncode(self, **(magic_encode_args or {}))
         # star printers use a different command set
         self.starCommands = self.profile.features.get('starCommands', False)
+        self.cmd = StarCommands() if self.starCommands else PrinterCommands()
 
     def __del__(self):
         """call self.close upon deletion"""
@@ -167,17 +144,21 @@ class Escpos(object):
         im = EscposImage(img_source)
 
         try:
-            if center:
-                if not media_width:
-                    media_width = self.profile.profile_data["media"]["width"]["pixels"]
-                    if media_width == "Unknown":
+            if not media_width:
+                # get media_width from profile
+                media_width = self.profile.profile_data["media"]["width"]["pixels"]
+                if media_width == "Unknown":
                         logger.warning("The media.width.pixel field of the printer profile is not set. "
                                        + "The center flag will have no effect.")
 
-                    media_width = int(self.profile.profile_data["media"]["width"]["pixels"])
+                media_width = int(self.profile.profile_data["media"]["width"]["pixels"])
 
-                if im.width < media_width:
-                    im.center(media_width)
+            if im.width > media_width:
+                raise ImageWidthError("{} > {}".format(im.width, media_width))
+
+            if center:
+                im.center(media_width)
+
         except KeyError:
             # If the printer's pixel width is not known, print anyways...
             pass
@@ -518,10 +499,10 @@ class Escpos(object):
         """
         if function_type is None:
             # Choose the function type automatically.
-            if bc in BARCODE_TYPES["A"]:
+            if bc in self.cmd.BARCODE_TYPES["A"]:
                 function_type = "A"
             else:
-                if bc in BARCODE_TYPES["B"]:
+                if bc in self.cmd.BARCODE_TYPES["B"]:
                     if not self.profile.supports(BARCODE_B):
                         raise BarcodeTypeError(
                             (
@@ -535,7 +516,7 @@ class Escpos(object):
                         ("Barcode type '{bc} is not valid").format(bc=bc)
                     )
 
-        bc_types = BARCODE_TYPES[function_type.upper()]
+        bc_types = self.cmd.BARCODE_TYPES[function_type.upper()]
         if bc.upper() not in bc_types.keys():
             raise BarcodeTypeError(
                 (
@@ -557,31 +538,31 @@ class Escpos(object):
 
         # Align Bar Code()
         if align_ct:
-            self._raw(TXT_STYLE["align"]["center"])
+            self._raw(self.cmd.TXT_STYLE["align"]["center"])
         # Height
         if 1 <= height <= 255:
-            self._raw(BARCODE_HEIGHT + six.int2byte(height))
+            self._raw(self.cmd.BARCODE_HEIGHT + six.int2byte(height))
         else:
             raise BarcodeSizeError("height = {height}".format(height=height))
         # Width
         if 2 <= width <= 6:
-            self._raw(BARCODE_WIDTH + six.int2byte(width))
+            self._raw(self.cmd.BARCODE_WIDTH + six.int2byte(width))
         else:
             raise BarcodeSizeError("width = {width}".format(width=width))
         # Font
         if font.upper() == "B":
-            self._raw(BARCODE_FONT_B)
+            self._raw(self.cmd.BARCODE_FONT_B)
         else:  # DEFAULT FONT: A
-            self._raw(BARCODE_FONT_A)
+            self._raw(self.cmd.BARCODE_FONT_A)
         # Position
         if pos.upper() == "OFF":
-            self._raw(BARCODE_TXT_OFF)
+            self._raw(self.cmd.BARCODE_TXT_OFF)
         elif pos.upper() == "BOTH":
-            self._raw(BARCODE_TXT_BTH)
+            self._raw(self.cmd.BARCODE_TXT_BTH)
         elif pos.upper() == "ABOVE":
-            self._raw(BARCODE_TXT_ABV)
+            self._raw(self.cmd.BARCODE_TXT_ABV)
         else:  # DEFAULT POSITION: BELOW
-            self._raw(BARCODE_TXT_BLW)
+            self._raw(self.cmd.BARCODE_TXT_BLW)
 
         self._raw(bc_types[bc.upper()])
 
@@ -746,32 +727,31 @@ class Escpos(object):
                 and isinstance(width, int)
                 and isinstance(height, int)
             ):
-                size_byte = TXT_STYLE["width"][width] + TXT_STYLE["height"][height]
-                self._raw(TXT_SIZE + six.int2byte(size_byte))
+                self._raw(self.cmd.set_text_size(width, height))
             else:
                 raise SetVariableError()
         else:
-            self._raw(TXT_NORMAL)
+            self._raw(self.cmd.TXT_NORMAL)
             if double_width and double_height:
-                self._raw(TXT_STYLE["size"]["2x"])
+                self._raw(self.cmd.TXT_STYLE["size"]["2x"])
             elif double_width:
-                self._raw(TXT_STYLE["size"]["2w"])
+                self._raw(self.cmd.TXT_STYLE["size"]["2w"])
             elif double_height:
-                self._raw(TXT_STYLE["size"]["2h"])
+                self._raw(self.cmd.TXT_STYLE["size"]["2h"])
             else:
-                self._raw(TXT_STYLE["size"]["normal"])
+                self._raw(self.cmd.TXT_STYLE["size"]["normal"])
 
-        self._raw(TXT_STYLE["flip"][flip])
-        self._raw(TXT_STYLE["smooth"][smooth])
-        self._raw(TXT_STYLE["bold"][bold])
-        self._raw(TXT_STYLE["underline"][underline])
-        self._raw(SET_FONT(six.int2byte(self.profile.get_font(font))))
-        self._raw(TXT_STYLE["align"][align])
+        self._raw(self.cmd.TXT_STYLE["flip"][flip])
+        self._raw(self.cmd.TXT_STYLE["smooth"][smooth])
+        self._raw(self.cmd.TXT_STYLE["bold"][bold])
+        self._raw(self.cmd.TXT_STYLE["underline"][underline])
+        self._raw(self.cmd.set_font(six.int2byte(self.profile.get_font(font))))
+        self._raw(self.cmd.TXT_STYLE["align"][align])
 
         if density != 9:
-            self._raw(TXT_STYLE["density"][density])
+            self._raw(self.cmd.TXT_STYLE["density"][density])
 
-        self._raw(TXT_STYLE["invert"][invert])
+        self._raw(self.cmd.TXT_STYLE["invert"][invert])
 
     def line_spacing(self, spacing=None, divisor=180):
         """Set line character spacing.
@@ -789,10 +769,10 @@ class Escpos(object):
         available command (using a divisor of 180) is chosen.
         """
         if spacing is None:
-            self._raw(LINESPACING_RESET)
+            self._raw(self.cmd.LINESPACING_RESET)
             return
 
-        if divisor not in LINESPACING_FUNCS:
+        if divisor not in self.cmd.LINESPACING_FUNCS:
             raise ValueError("divisor must be either 360, 180 or 60")
         if divisor in [360, 180] and (not (0 <= spacing <= 255)):
             raise ValueError(
@@ -803,7 +783,7 @@ class Escpos(object):
                 "spacing must be a int between 0 and 85 when divisor is 60"
             )
 
-        self._raw(LINESPACING_FUNCS[divisor] + six.int2byte(spacing))
+        self._raw(self.cmd.LINESPACING_FUNCS[divisor] + six.int2byte(spacing))
 
     def cut(self, mode="FULL", feed=True):
         """Cut paper.
@@ -818,7 +798,9 @@ class Escpos(object):
         """
 
         if not feed:
-            self._raw(ESC + b"d" + six.int2byte(66) + b"\x00")
+            # ESC + b"d" (GS + b"V" for StarPRNT)
+            command = ESC + b"d" if self.starCommands else GS + b"V"
+            self._raw(command + six.int2byte(66) + b"\x00")
             return
 
         self.print_and_feed(6)
@@ -829,14 +811,14 @@ class Escpos(object):
 
         if mode == "PART":
             if self.profile.supports("paperPartCut"):
-                self._raw(PAPER_PART_CUT)
+                self._raw(self.cmd.PAPER_PART_CUT)
             elif self.profile.supports("paperFullCut"):
-                self._raw(PAPER_FULL_CUT)
+                self._raw(self.cmd.PAPER_FULL_CUT)
         elif mode == "FULL":
             if self.profile.supports("paperFullCut"):
-                self._raw(PAPER_FULL_CUT)
+                self._raw(self.cmd.PAPER_FULL_CUT)
             elif self.profile.supports("paperPartCut"):
-                self._raw(PAPER_PART_CUT)
+                self._raw(self.cmd.PAPER_PART_CUT)
 
     def cashdraw(self, pin):
         """Send pulse to kick the cash drawer
@@ -848,12 +830,12 @@ class Escpos(object):
         :raises: :py:exc:`~escpos.exceptions.CashDrawerError`
         """
         if pin == 2:
-            self._raw(CD_KICK_2)
+            self._raw(self.cmd.CD_KICK_2)
         elif pin == 5:
-            self._raw(CD_KICK_5)
+            self._raw(self.cmd.CD_KICK_5)
         else:
             try:
-                self._raw(CD_KICK_DEC_SEQUENCE(*pin))
+                self._raw(self.cmd.cd_kick_dec_sequence(*pin))
             except TypeError as err:
                 raise CashDrawerError(err)
 
@@ -868,16 +850,16 @@ class Escpos(object):
         :type select_display: bool
         """
         if select_display:
-            self._raw(LINE_DISPLAY_OPEN)
+            self._raw(self.cmd.LINE_DISPLAY_OPEN)
         else:
-            self._raw(LINE_DISPLAY_CLOSE)
+            self._raw(self.cmd.LINE_DISPLAY_CLOSE)
 
     def linedisplay_clear(self):
         """Clears the line display and resets the cursor
 
         This method is used for line displays that are daisy-chained between your computer and printer.
         """
-        self._raw(LINE_DISPLAY_CLEAR)
+        self._raw(self.cmd.LINE_DISPLAY_CLEAR)
 
     def linedisplay(self, text):
         """
@@ -903,11 +885,11 @@ class Escpos(object):
             * RESET
         """
         if hw.upper() == "INIT":
-            self._raw(HW_INIT)
+            self._raw(self.cmd.HW_INIT)
         elif hw.upper() == "SELECT":
-            self._raw(HW_SELECT)
+            self._raw(self.cmd.HW_SELECT)
         elif hw.upper() == "RESET":
-            self._raw(HW_RESET)
+            self._raw(self.cmd.HW_RESET)
         else:  # DEFAULT: DOES NOTHING
             pass
 
@@ -920,8 +902,7 @@ class Escpos(object):
         :raises ValueError: if not 0 <= n <= 255
         """
         if 0 <= n <= 255:
-            # ESC d n (ESC a for StarPRNT)
-            self._raw(ESC + b"a" + six.int2byte(n))
+            self._raw(self.cmd.print_and_feed(n))
         else:
             raise ValueError("n must be betwen 0 and 255")
 
@@ -980,9 +961,9 @@ class Escpos(object):
         :rtype: None
         """
         if enable:
-            self._raw(PANEL_BUTTON_ON)
+            self._raw(self.cmd.PANEL_BUTTON_ON)
         else:
-            self._raw(PANEL_BUTTON_OFF)
+            self._raw(self.cmd.PANEL_BUTTON_OFF)
 
     def query_status(self, mode):
         """
@@ -1005,10 +986,10 @@ class Escpos(object):
         :returns: When online, returns ``True``; ``False`` otherwise.
         :rtype: bool
         """
-        status = self.query_status(RT_STATUS_ONLINE)
+        status = self.query_status(self.cmd.RT_STATUS_ONLINE)
         if len(status) == 0:
             return False
-        return not (status[0] & RT_MASK_ONLINE)
+        return not (status[0] & self.cmd.RT_MASK_ONLINE)
 
     def paper_status(self):
         """
@@ -1020,14 +1001,14 @@ class Escpos(object):
         :returns: 2: Paper is adequate. 1: Paper ending. 0: No paper.
         :rtype: int
         """
-        status = self.query_status(RT_STATUS_PAPER)
+        status = self.query_status(self.cmd.RT_STATUS_PAPER)
         if len(status) == 0:
             return 2
-        if status[0] & RT_MASK_NOPAPER == RT_MASK_NOPAPER:
+        if status[0] & self.cmd.RT_MASK_NOPAPER == self.cmd.RT_MASK_NOPAPER:
             return 0
-        if status[0] & RT_MASK_LOWPAPER == RT_MASK_LOWPAPER:
+        if status[0] & self.cmd.RT_MASK_LOWPAPER == self.cmd.RT_MASK_LOWPAPER:
             return 1
-        if status[0] & RT_MASK_PAPER == RT_MASK_PAPER:
+        if status[0] & self.cmd.RT_MASK_PAPER == self.cmd.RT_MASK_PAPER:
             return 2
 
 

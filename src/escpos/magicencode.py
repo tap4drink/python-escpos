@@ -14,10 +14,14 @@ The code is based on the encoding-code in py-xml-escpos by @fvdsn.
 
 
 from builtins import bytes
-from .constants import CODEPAGE_CHANGE
+from logging import getLogger
+from escpos.constants import StarCommands, PrinterCommands
+
 from .exceptions import Error
 from .codepages import CodePages
 import six
+
+logger = getLogger(__name__)
 
 
 class Encoder(object):
@@ -228,7 +232,7 @@ class MagicEncode(object):
 
         self.driver = driver
         self.encoder = encoder or Encoder(driver.profile.get_code_pages())
-
+        self.cmdset = StarCommands() if driver.profile.features.get('starCommands', False) else PrinterCommands()
         self.encoding = self.encoder.get_encoding_name(encoding) if encoding else None
         self.defaultsymbol = defaultsymbol
         self.disabled = disabled
@@ -288,10 +292,12 @@ class MagicEncode(object):
         # We always know the current code page; if the new codepage
         # is different, emit a change command.
         if encoding != self.encoding:
+            logger.debug("switch to encoding: %s", encoding)
             self.encoding = encoding
             self.driver._raw(
-                CODEPAGE_CHANGE + six.int2byte(self.encoder.get_sequence(encoding))
+                self.cmdset.CODEPAGE_CHANGE + six.int2byte(self.encoder.get_sequence(encoding))
             )
 
         if text:
+            logger.debug("print text: %s", text)
             self.driver._raw(self.encoder.encode(text, encoding))

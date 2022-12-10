@@ -292,6 +292,17 @@ class PrinterCommands:
         """ print and feed n lines """
         return ESC + b"d" + six.int2byte(n)
 
+    def set_character_set(self, character_set):
+        """
+        Set the international character set. The international character set
+        changes some of the lower 128 ASCII symbols. Refer to
+        https://www.epson-biz.com/modules/ref_charcode_en/index.php?content_id=3
+        for the different charsets.
+
+        character_set must be a number between 0 and 16
+        """
+        return ESC + b"R" + six.int2byte(character_set)
+
 
 class StarCommands(PrinterCommands):
     """
@@ -376,6 +387,10 @@ class StarCommands(PrinterCommands):
         }
 
         self.CODEPAGE_CHANGE = ESC + GS + b"\x74"
+
+        # doesn't seem to be supported by star
+        self.SHEET_SLIP_MODE = b''
+        self.SHEET_ROLL_MODE = b''
 
     def _cut_paper(self, full):
         return ESC + b'd' + b'\x02' if full else b'\x03'

@@ -1,29 +1,33 @@
-import re
-from os import environ, path
-import pkg_resources
-import pickle
+"""Handler for capabilities data."""
+import atexit
 import logging
+import pickle
+import platform
+import re
 import time
+from contextlib import ExitStack
+from os import environ, path
+from tempfile import mkdtemp
+from typing import Any, Dict, Optional, Type
 
+import importlib_resources
 import six
 import yaml
-
-from tempfile import gettempdir
-import platform
-
-from typing import Any, Dict
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-pickle_dir = environ.get("ESCPOS_CAPABILITIES_PICKLE_DIR", gettempdir())
+pickle_dir = environ.get("ESCPOS_CAPABILITIES_PICKLE_DIR", mkdtemp())
 pickle_path = path.join(
     pickle_dir, "{v}.capabilities.pickle".format(v=platform.python_version())
 )
-# get a temporary file from pkg_resources if no file is specified in env
+# get a temporary file from importlib_resources if no file is specified in env
+file_manager = ExitStack()
+atexit.register(file_manager.close)
+ref = importlib_resources.files(__name__) / "capabilities.json"
 capabilities_path = environ.get(
     "ESCPOS_CAPABILITIES_FILE",
-    pkg_resources.resource_filename(__name__, "capabilities.json"),
+    file_manager.enter_context(importlib_resources.as_file(ref)),
 )
 
 # Load external printer database
@@ -46,18 +50,43 @@ if full_load:
     logger.debug("Loading and pickling capabilities")
     with open(capabilities_path) as cp, open(pickle_path, "wb") as pp:
         CAPABILITIES = yaml.safe_load(cp)
+        if not CAPABILITIES:
+            # yaml could not be loaded
+            print(
+                f"Capabilities yaml from {capabilities_path} could not be loaded.\n"
+                "This python package seems to be broken. If it has been installed "
+                "from official sources, please report an issue on GitHub.\n"
+                "Currently loaded capabilities:\n"
+                f"{CAPABILITIES}"
+            )
+            CAPABILITIES = {
+                "profiles": {
+                    "default": {
+                        "name": "BrokenDefault",
+                        "notes": "The integrated capabilities file could not be found and has been replaced.",
+                        "codePages": {"0": "Broken"},
+                        "features": {},
+                    },
+                },
+                "encodings": {
+                    "Broken": {
+                        "name": "Broken",
+                        "notes": "The configuration is broken.",
+                    }
+                },
+            }
+            print(
+                "Created a minimal backup profile, "
+                "many functionalities of the library will not work:\n"
+                f"{CAPABILITIES}"
+            )
         pickle.dump(CAPABILITIES, pp, protocol=2)
 
 logger.debug("Finished loading capabilities took %.2fs", time.time() - t0)
 
 
-PROFILES: Dict[str, Any] = CAPABILITIES["profiles"]
-
-
 class NotSupported(Exception):
-    """Raised if a requested feature is not supported by the
-    printer profile.
-    """
+    """Raised if a requested feature is not supported by the printer profile."""
 
     pass
 
@@ -75,11 +104,13 @@ class BaseProfile(object):
     profile_data: Dict[str, Any] = {}
 
     def __getattr__(self, name):
+        """Get a data element from the profile."""
         return self.profile_data[name]
 
     def get_font(self, font) -> int:
-        """Return the escpos index for `font`. Makes sure that
-        the requested `font` is valid.
+        """Return the escpos index for `font`.
+
+        Makes sure that the requested `font` is valid.
         """
         font = {"a": 0, "b": 1}.get(font, font)
         if not six.text_type(font) in self.fonts:
@@ -102,9 +133,10 @@ class BaseProfile(object):
         return {v: k for k, v in self.codePages.items()}
 
 
-def get_profile(name: str = None, **kwargs):
-    """Get the profile by name; if no name is given, return the
-    default profile.
+def get_profile(name: Optional[str] = None, **kwargs):
+    """Get a profile by name.
+
+    If no name is given, return the default profile.
     """
     if isinstance(name, Profile):
         return name
@@ -116,12 +148,15 @@ def get_profile(name: str = None, **kwargs):
 CLASS_CACHE = {}
 
 
-def get_profile_class(name: str):
-    """For the given profile name, load the data from the external
+def get_profile_class(name: str) -> Type[BaseProfile]:
+    """Load a profile class.
+
+    For the given profile name, load the data from the external
     database, then generate dynamically a class.
     """
     if name not in CLASS_CACHE:
-        profile_data = PROFILES[name]
+        profiles: Dict[str, Any] = CAPABILITIES["profiles"]
+        profile_data = profiles[name]
         profile_name = clean(name)
         class_name = "{}{}Profile".format(profile_name[0].upper(), profile_name[1:])
         new_class = type(class_name, (BaseProfile,), {"profile_data": profile_data})
@@ -131,6 +166,7 @@ def get_profile_class(name: str):
 
 
 def clean(s):
+    """Clean profile name."""
     # Remove invalid characters
     s = re.sub("[^0-9a-zA-Z_]", "", s)
     # Remove leading characters until we find a letter or underscore
@@ -138,18 +174,25 @@ def clean(s):
     return str(s)
 
 
-class Profile(get_profile_class("default")):
-    """
-    For users, who want to provide their profile
+# mute the mypy type issue with this dynamic base class function for now (: Any)
+ProfileBaseClass: Any = get_profile_class("default")
+
+
+class Profile(ProfileBaseClass):
+    """Profile class for user usage.
+
+    For users, who want to provide their own profile.
     """
 
     def __init__(self, columns=None, features=None):
+        """Initialize profile."""
         super(Profile, self).__init__()
 
         self.columns = columns
         self.features = features or {}
 
     def get_columns(self, font):
+        """Get column count of printer."""
         if self.columns is not None:
             return self.columns
 

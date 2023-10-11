@@ -1,5 +1,5 @@
 {
-  "restructuredtext.confPath": "${workspaceFolder}/doc",
+  "esbonio.sphinx.confDir": "${workspaceFolder}/doc",
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
@@ -11,4 +11,7 @@
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
   "python.formatting.provider": "black",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
 }

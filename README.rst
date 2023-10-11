@@ -2,26 +2,17 @@
 python-escpos - Python library to manipulate ESC/POS Printers
 #############################################################
 
-.. image:: https://travis-ci.org/python-escpos/python-escpos.svg?branch=master
-    :target: https://travis-ci.org/python-escpos/python-escpos
-    :alt: Continous Integration
-
-.. image:: https://codecov.io/github/python-escpos/python-escpos/coverage.svg?branch=master
-    :target: https://codecov.io/github/python-escpos/python-escpos?branch=master
-    :alt: Code Coverage
+Description
+===========
 
 .. image:: https://readthedocs.org/projects/python-escpos/badge/?version=latest
     :target: https://python-escpos.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-
-Description
------------
-
 Python ESC/POS is a library which lets the user have access to all those printers handled
 by ESC/POS commands, as defined by Epson, from a Python application.
 
-The library tries to implement the functions provided by the ESC/POS-commandset and supports sending text, images,
+The library tries to implement the functions provided by the ESC/POS-command-set and supports sending text, images,
 barcodes and qr-codes to the printer.
 
 Text can be aligned/justified and fonts can be changed by size, type and weight.
@@ -58,7 +49,7 @@ The basic usage is:
     p = Usb(0x04b8, 0x0202, 0, profile="TM-T88III")
     p.text("Hello World\n")
     p.image("logo.gif")
-    p.barcode('1324354657687', 'EAN13', 64, 2, '', '')
+    p.barcode('4006381333931', 'EAN13', 64, 2, '', '')
     p.cut()
 
 
@@ -70,7 +61,7 @@ Another example based on the Network printer class:
 
     kitchen = Network("192.168.1.100") #Printer IP Address
     kitchen.text("Hello World\n")
-    kitchen.barcode('1324354657687', 'EAN13', 64, 2, '', '')
+    kitchen.barcode('4006381333931', 'EAN13', 64, 2, '', '')
     kitchen.cut()
 
 Another example based on the Serial printer class:
@@ -93,16 +84,20 @@ Another example based on the Serial printer class:
     p.cut()
 
 
-The full project-documentation is available on `Read the Docs <https://python-escpos.readthedocs.io>`_.
+The full project-documentation is available on
+`Read the Docs <https://python-escpos.readthedocs.io>`_.
 
 Contributing
 ------------
 
-This project is open for any contribution! Please see `CONTRIBUTING.rst <https://python-escpos.readthedocs.io/en/latest/dev/contributing.html>`_ for more information.
+This project is open for any contribution! Please see
+`CONTRIBUTING.rst <https://python-escpos.readthedocs.io/en/latest/dev/contributing.html>`_
+for more information.
 
 
 Disclaimer
 ----------
 
-None of the vendors cited in this project agree or endorse any of the patterns or implementations.
+None of the vendors cited in this project agree or endorse any of the
+patterns or implementations.
 Its names are used only to maintain context.

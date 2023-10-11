@@ -12,9 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
-
+import sys
 from importlib.metadata import version as imp_version
 
 on_rtd = os.getenv("READTHEDOCS") == "True"
@@ -35,6 +34,7 @@ root = os.path.relpath(os.path.join(os.path.dirname(__file__), ".."))
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",
     "sphinx.ext.doctest",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
@@ -42,8 +42,14 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.graphviz",
     "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.imgconverter",
+    "sphinxarg.ext",
+    "sphinxcontrib.datatemplates",
     "sphinxcontrib.spelling",
 ]
+
+# mock the following modules for autodoc
+autodoc_mock_imports = ["qrcode"]
 
 # supress warnings for external images
 suppress_warnings = [
@@ -54,7 +60,7 @@ suppress_warnings = [
 todo_include_todos = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = ["_templates", "capability_templates"]
 
 # The suffix of source filenames.
 source_suffix = ".rst"
@@ -66,8 +72,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"python-escpos"
-copyright = u"2016, Manuel F Martinez and others"
+project = "python-escpos"
+copyright = "2023, python-escpos developers"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -121,7 +127,8 @@ pygments_style = "sphinx"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 if on_rtd:
-    html_theme = "default"
+    html_theme = "sphinx_rtd_theme"
+    print("recognized execution on RTD")
 else:
     try:
         import sphinx_rtd_theme
@@ -222,6 +229,8 @@ latex_elements = {
     #'preamble': '',
 }
 
+latex_engine = "xelatex"
+
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
@@ -229,8 +238,8 @@ latex_documents = [
     (
         "index",
         "python-escpos.tex",
-        u"python-escpos Documentation",
-        u"Manuel F Martinez and others",
+        "python-escpos Documentation",
+        "python-escpos developers",
         "manual",
     ),
 ]
@@ -264,8 +273,8 @@ man_pages = [
     (
         "index",
         "python-escpos",
-        u"python-escpos Documentation",
-        [u"Manuel F Martinez and others"],
+        "python-escpos Documentation",
+        ["python-escpos developers"],
         1,
     )
 ]
@@ -283,8 +292,8 @@ texinfo_documents = [
     (
         "index",
         "python-escpos",
-        u"python-escpos Documentation",
-        u"Manuel F Martinez and others",
+        "python-escpos Documentation",
+        "python-escpos developers",
         "python-escpos",
         "One line description of project.",
         "Miscellaneous",
@@ -308,3 +317,15 @@ spelling_ignore_pypi_package_names = True
 spelling_ignore_wiki_words = True
 spelling_ignore_python_builtins = True
 spelling_ignore_importable_modules = True
+spelling_ignore_contributor_names = True
+spelling_word_list_filename = ["spelling_wordlist.txt", "../AUTHORS"]
+spelling_show_suggestions = True
+spelling_suggestion_limit = 3
+spelling_warning = True
+spelling_exclude_patterns = [
+    "**/capabilities.json",
+    "../../capabilities-data/dist/capabilities.json",
+    "**/available-encodings.rst",
+    "**/available-profiles.rst",
+    "dev/todo.rst",
+]

@@ -1,72 +1,80 @@
 #  -*- coding: utf-8 -*-
 """ Set of ESC/POS Commands (Constants)
 
-This module contains constants that are described in the esc/pos-documentation.
-Since there is no definitive and unified specification for all esc/pos-like printers the constants could later be
+This module contains constants that are described in the Esc/Pos-documentation.
+Since there is no definitive and unified specification for all Esc/Pos-like printers the constants could later be
 moved to `capabilities` as in `escpos-php by @mike42 <https://github.com/mike42/escpos-php>`_.
 
-:author: `Manuel F Martinez <manpaz@bashlinux.com>`_ and others
+:author: python-escpos developers
 :organization: Bashlinux and `python-escpos <https://github.com/python-escpos>`_
 :copyright: Copyright (c) 2012-2017 Bashlinux and python-escpos
 :license: MIT
 """
 
 
+from typing import Dict
+
 import six
+
+from .types import ConstTxtStyleClass
 
 # Control characters
 # as labelled in https://www.novopos.ch/client/EPSON/TM-T20/TM-T20_eng_qr.pdf
-NUL = b"\x00"
-EOT = b"\x04"
-ENQ = b"\x05"
-DLE = b"\x10"
-DC4 = b"\x14"
-CAN = b"\x18"
-ESC = b"\x1b"
-FS = b"\x1c"
-GS = b"\x1d"
-RS = b"\x1e"
+NUL: bytes = b"\x00"
+EOT: bytes = b"\x04"
+ENQ: bytes = b"\x05"
+DLE: bytes = b"\x10"
+DC4: bytes = b"\x14"
+CAN: bytes = b"\x18"
+ESC: bytes = b"\x1b"
+FS: bytes = b"\x1c"
+GS: bytes = b"\x1d"
+RS: bytes = b"\x1e"
+
 
 # Feed control sequences
-CTL_LF = b"\n"  # Print and line feed
-CTL_FF = b"\f"  # Form feed
-CTL_CR = b"\r"  # Carriage return
-CTL_HT = b"\t"  # Horizontal tab
-CTL_SET_HT = ESC + b"\x44"  # Set horizontal tab positions
-CTL_VT = b"\v"  # Vertical tab
+CTL_LF: bytes = b"\n"  #: Print and line feed
+CTL_FF: bytes = b"\f"  #: Form feed
+CTL_CR: bytes = b"\r"  #: Carriage return
+CTL_HT: bytes = b"\t"  #: Horizontal tab
+CTL_SET_HT: bytes = ESC + b"\x44"  #: Set horizontal tab positions
+CTL_VT: bytes = b"\v"  #: Vertical tab
 
-# Bounds and validation regex for known barcode formats
+#: supported barcode formats
 BARCODE_FORMATS = {
-    "UPC-A": ([(11, 12)], "^[0-9]{11,12}$"),
-    "UPC-E": ([(7, 8), (11, 12)], "^([0-9]{7,8}|[0-9]{11,12})$"),
-    "EAN13": ([(12, 13)], "^[0-9]{12,13}$"),
-    "EAN8": ([(7, 8)], "^[0-9]{7,8}$"),
-    "CODE39": ([(1, 255)], "^([0-9A-Z \$\%\+\-\.\/]+|\*[0-9A-Z \$\%\+\-\.\/]+\*)$"),
-    "ITF": ([(2, 255)], "^([0-9]{2})+$"),
-    "NW7": ([(1, 255)], "^[A-Da-d][0-9\$\+\-\.\/\:]+[A-Da-d]$"),
-    "CODABAR": ([(1, 255)], "^[A-Da-d][0-9\$\+\-\.\/\:]+[A-Da-d]$"),  # Same as NW7
-    "CODE93": ([(1, 255)], "^[\\x00-\\x7F]+$"),
-    "CODE128": ([(2, 255)], "^\{[A-C][\\x00-\\x7F]+$"),
-    "GS1-128": ([(2, 255)], "^\{[A-C][\\x00-\\x7F]+$"),  # same as CODE128
-    "GS1 DATABAR OMNIDIRECTIONAL": ([(13, 13)], "^[0-9]{13}$"),
-    "GS1 DATABAR TRUNCATED": ([(13, 13)], "^[0-9]{13}$"),  # same as GS1 omnidirectional
-    "GS1 DATABAR LIMITED": ([(13, 13)], "^[01][0-9]{12}$"),
+    "UPC-A": ([(11, 12)], r"^[0-9]{11,12}$"),
+    "UPC-E": ([(7, 8), (11, 12)], r"^([0-9]{7,8}|[0-9]{11,12})$"),
+    "EAN13": ([(12, 13)], r"^[0-9]{12,13}$"),
+    "EAN8": ([(7, 8)], r"^[0-9]{7,8}$"),
+    "CODE39": ([(1, 255)], r"^([0-9A-Z \$\%\+\-\.\/]+|\*[0-9A-Z \$\%\+\-\.\/]+\*)$"),
+    "ITF": ([(2, 255)], r"^([0-9]{2})+$"),
+    "NW7": ([(1, 255)], r"^[A-Da-d][0-9\$\+\-\.\/\:]+[A-Da-d]$"),
+    "CODABAR": ([(1, 255)], r"^[A-Da-d][0-9\$\+\-\.\/\:]+[A-Da-d]$"),  # Same as NW7
+    "CODE93": ([(1, 255)], r"^[\x00-\x7F]+$"),
+    "CODE128": ([(2, 255)], r"^\{[A-C][\x00-\x7F]+$"),
+    "GS1-128": ([(2, 255)], r"^\{[A-C][\x00-\x7F]+$"),  # same as CODE128
+    "GS1 DATABAR OMNIDIRECTIONAL": ([(13, 13)], r"^[0-9]{13}$"),
+    "GS1 DATABAR TRUNCATED": (
+        [(13, 13)],
+        r"^[0-9]{13}$",
+    ),  # same as GS1 omnidirectional
+    "GS1 DATABAR LIMITED": ([(13, 13)], r"^[01][0-9]{12}$"),
     "GS1 DATABAR EXPANDED": (
         [(2, 255)],
-        "^\([0-9][A-Za-z0-9 \!\"\%\&'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\_\{]+$",
+        r"^\([0-9][A-Za-z0-9 \!\"\%\&'\(\)\*\+\,\-\.\/\:\;\<\=\>\?\_\{]+$",
     ),
 }
 
 # QRCode error correction levels
-QR_ECLEVEL_L = 0
-QR_ECLEVEL_M = 1
-QR_ECLEVEL_Q = 2
-QR_ECLEVEL_H = 3
+QR_ECLEVEL_L: int = 0
+QR_ECLEVEL_M: int = 1
+QR_ECLEVEL_Q: int = 2
+QR_ECLEVEL_H: int = 3
 
 # QRcode models
-QR_MODEL_1 = 1
-QR_MODEL_2 = 2
-QR_MICRO = 3
+QR_MODEL_1: int = 1
+QR_MODEL_2: int = 2
+QR_MICRO: int = 3
 
 
 class PrinterCommands:
@@ -85,6 +93,9 @@ class PrinterCommands:
         # Beep (please note that the actual beep sequence may differ between devices)
         self.BEEP = b"\x07"
 
+        # Internal buzzer (only supported printers)
+        self.BUZZER: bytes = ESC + b"\x42"
+
         # Panel buttons (e.g. the FEED button)
         self.PANEL_BUTTON_ON = self._panel_button(True)     # enable all panel buttons
         self.PANEL_BUTTON_OFF = self._panel_button(False)   # disable all panel buttons
@@ -98,6 +109,16 @@ class PrinterCommands:
         # these are actually not documented anywhere, see https://stackoverflow.com/a/64235804
         self.SHEET_SLIP_MODE = ESC + b"\x63\x30\x04"  # slip paper
         self.SHEET_ROLL_MODE = ESC + b"\x63\x30\x01"  # paper roll
+
+        # Slip specific codes
+        SLIP_EJECT: bytes = ESC + b"\x4b\xc0"  # Eject the slip or cheque
+        SLIP_SELECT: bytes = FS  # Select the slip station as default station
+        SLIP_SET_WAIT_TIME: bytes = (
+                ESC + b"\x1b\x66"
+        )  # Set timeout waiting for a slip/cheque to be inserted
+        SLIP_PRINT_AND_EJECT: bytes = (
+            b"\x0c"  # Print the buffer and eject (after waiting for the paper to be inserted)
+        )
 
         # Text format
         # TODO: Acquire the "ESC/POS Application Programming Guide for Paper Roll
@@ -408,3 +429,4 @@ class StarCommands(PrinterCommands):
     def print_and_feed(self, n):
         """ print and feed n lines """
         return ESC + b"a" + six.int2byte(n)
+

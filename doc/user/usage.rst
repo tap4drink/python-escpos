@@ -1,7 +1,7 @@
-*****
 Usage
-*****
-:Last Reviewed: 2017-06-10
+=====
+
+:Last Reviewed: 2023-08-10
 
 Define your printer
 -------------------
@@ -121,7 +121,7 @@ on a USB interface.
     # Print QR Code
     p.qr("You can readme from your smartphone")
     # Print barcode
-    p.barcode('1324354657687','EAN13',64,2,'','')
+    p.barcode('4006381333931','EAN13',64,2,'','')
     # Cut paper
     p.cut()
 
@@ -146,7 +146,7 @@ And for linux::
 
     $HOME/.config/python-escpos/config.yaml
 
-If you aren't sure, run::
+If you are not sure, run::
 
     from escpos import config
     c = config.Config()
@@ -206,10 +206,12 @@ For normal usage you can simply pass your text to the printers ``text()``-functi
 the right codepage and then send the encoded data to the printer. If this feature does not work, please try to
 isolate the error and then create an issue on the GitHub project page.
 
-If you want or need to you can manually set the codepage. For this please use the ``charcode()``-function. You can set
-any key-value that is in ``CHARCODE``. If something is wrong, an ``CharCodeError`` will be raised.
-After you have manually set the codepage the printer won't change it anymore. You can revert to normal behaviour
-by setting charcode to ``AUTO``.
+If you want or need to you can manually set the codepage.
+For this please use the ``charcode()``-function.
+You can set any key-value that is in ``CHARCODE``.
+If something is wrong, an ``CharCodeError`` will be raised.
+After you have manually set the codepage the printer won't change it anymore.
+You can revert to normal behavior by setting charcode to ``AUTO``.
 
 Advanced Usage: Print from binary blob
 --------------------------------------
@@ -237,6 +239,8 @@ However, please keep in mind, that often it is easier and better to just supply 
 Here you can download an example, that will print a set of common barcodes:
 
     * :download:`barcode.bin </download/barcode.bin>` by `@mike42 <https://github.com/mike42>`_
+
+.. _advanced-usage-change-capabilities-profile:
 
 Advanced Usage: change capabilities-profile
 -------------------------------------------

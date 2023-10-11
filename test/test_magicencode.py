@@ -2,20 +2,20 @@
 #  -*- coding: utf-8 -*-
 """tests for the magic encode module
 
-:author: `Patrick Kanzler <patrick.kanzler@fablab.fau.de>`_
+:author: `Patrick Kanzler <dev@pkanzler.de>`_
 :organization: `python-escpos <https://github.com/python-escpos>`_
 :copyright: Copyright (c) 2016 `python-escpos <https://github.com/python-escpos>`_
 :license: MIT
 """
 
 
-import pytest
-from nose.tools import raises, assert_raises
-from hypothesis import given, example
 import hypothesis.strategies as st
-from escpos.magicencode import MagicEncode, Encoder
-from escpos.katakana import encode_katakana
+import pytest
+from hypothesis import example, given
+
 from escpos.exceptions import CharCodeError, Error
+from escpos.katakana import encode_katakana
+from escpos.magicencode import Encoder, MagicEncode
 
 
 class TestEncoder:
@@ -24,17 +24,24 @@ class TestEncoder:
     """
 
     def test_can_encode(self):
-        assert not Encoder({"CP437": 1}).can_encode("CP437", u"€")
-        assert Encoder({"CP437": 1}).can_encode("CP437", u"á")
+        assert not Encoder({"CP437": 1}).can_encode("CP437", "€")
+        assert Encoder({"CP437": 1}).can_encode("CP437", "á")
         assert not Encoder({"foobar": 1}).can_encode("foobar", "a")
 
     def test_find_suitable_encoding(self):
-        assert not Encoder({"CP437": 1}).find_suitable_encoding(u"€")
-        assert Encoder({"CP858": 1}).find_suitable_encoding(u"€") == "CP858"
+        assert not Encoder({"CP437": 1}).find_suitable_encoding("€")
+        assert Encoder({"CP858": 1}).find_suitable_encoding("€") == "CP858"
 
-    @raises(ValueError)
+    def test_find_suitable_encoding_unnecessary_codepage_swap(self):
+        enc = Encoder({"CP857": 1, "CP437": 2, "CP1252": 3, "CP852": 4, "CP858": 5})
+        # desired behavior would be that the encoder always stays in the lower
+        # available codepages if possible
+        for character in ("Á", "É", "Í", "Ó", "Ú"):
+            assert enc.find_suitable_encoding(character) == "CP857"
+
     def test_get_encoding(self):
-        Encoder({}).get_encoding_name("latin1")
+        with pytest.raises(ValueError):
+            Encoder({}).get_encoding_name("latin1")
 
 
 class TestMagicEncode:
@@ -90,7 +97,7 @@ class TestMagicEncode:
                 encoder=Encoder({"CP437": 1}),
                 encoding="CP437",
             )
-            encode.write(u"€ ist teuro.")
+            encode.write("€ ist teuro.")
             assert driver.output == b"_ ist teuro."
 
     class TestForceEncoding:

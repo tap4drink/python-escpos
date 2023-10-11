@@ -111,12 +111,12 @@ class PrinterCommands:
         self.SHEET_ROLL_MODE = ESC + b"\x63\x30\x01"  # paper roll
 
         # Slip specific codes
-        SLIP_EJECT: bytes = ESC + b"\x4b\xc0"  # Eject the slip or cheque
-        SLIP_SELECT: bytes = FS  # Select the slip station as default station
-        SLIP_SET_WAIT_TIME: bytes = (
+        self.SLIP_EJECT: bytes = ESC + b"\x4b\xc0"  # Eject the slip or cheque
+        self.SLIP_SELECT: bytes = FS  # Select the slip station as default station
+        self.SLIP_SET_WAIT_TIME: bytes = (
                 ESC + b"\x1b\x66"
         )  # Set timeout waiting for a slip/cheque to be inserted
-        SLIP_PRINT_AND_EJECT: bytes = (
+        self.SLIP_PRINT_AND_EJECT: bytes = (
             b"\x0c"  # Print the buffer and eject (after waiting for the paper to be inserted)
         )
 

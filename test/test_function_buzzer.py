@@ -2,13 +2,13 @@ import pytest
 import six
 
 from escpos import printer
-from escpos.constants import BUZZER
+from escpos.constants import PrinterCommands
 
 
 def test_buzzer_function_with_default_params():
     instance = printer.Dummy()
     instance.buzzer()
-    expected = BUZZER + six.int2byte(2) + six.int2byte(4)
+    expected = PrinterCommands().BUZZER + six.int2byte(2) + six.int2byte(4)
     assert instance.output == expected
 
 
@@ -29,7 +29,7 @@ def test_buzzer_function_with_default_params():
 def test_buzzer_function(times, duration):
     instance = printer.Dummy()
     instance.buzzer(times, duration)
-    expected = BUZZER + six.int2byte(times) + six.int2byte(duration)
+    expected = PrinterCommands().BUZZER + six.int2byte(times) + six.int2byte(duration)
     assert instance.output == expected
 
 

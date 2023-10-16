@@ -216,7 +216,7 @@ class PrinterCommands:
         # Prefix to change the codepage. You need to attach a byte to indicate
         # the codepage to use. We use escpos-printer-db as the data source.
         self.CODEPAGE_CHANGE = ESC + b"\x74"
-
+        
         # Barcode format
         self.BARCODE_TXT_OFF = self._set_barcode_txt_pos(b"\x00")  # HRI barcode chars OFF
         self.BARCODE_TXT_ABV = self._set_barcode_txt_pos(b"\x01")  # HRI barcode chars above
@@ -283,7 +283,7 @@ class PrinterCommands:
         return ESC + b"c5" + six.int2byte(0 if enable else 1)
 
     def set_codepage(self, page_num):
-        return ESC + b"\x74" + six.int2byte(page_num)
+        return self.CODEPAGE_CHANGE + six.int2byte(page_num)
 
     def _set_barcode_txt_pos(self, n):
         return GS + b"H" + n
@@ -417,7 +417,7 @@ class StarCommands(PrinterCommands):
         return ESC + b'd' + b'\x02' if full else b'\x03'
 
     def set_codepage(self, page_num):
-        return ESC + GS + b"\x74" + six.int2byte(page_num)
+        return self.CODEPAGE_CHANGE + six.int2byte(page_num)
 
     def set_text_size(self, width, height):
         # not supported (?)

@@ -159,7 +159,7 @@ class Encoder(object):
     def __encoding_sort_func(self, item):
         key, index = item
         used = key in self.used_encodings
-        return (not used, index)
+        return (not used, int(index))
 
     def find_suitable_encoding(self, char):
         """Search in a specific order for a suitable encoding.

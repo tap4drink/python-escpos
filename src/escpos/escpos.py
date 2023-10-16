@@ -86,6 +86,9 @@ class Escpos(object):
         # star printers use a different command set
         self.starCommands = self.profile.features.get('starCommands', False)
         self.cmd = StarCommands() if self.starCommands else PrinterCommands()
+        if profile == 'ITPP047':
+            # "Timber" from Munbyn sent me this via WhatsApp
+            self.cmd.CODEPAGE_CHANGE = b"\x1f\x1b\x1f\xff"
 
         # Remove special characters and whitespaces of the supported barcode names,
         # convert to uppercase and map them to their original names.
